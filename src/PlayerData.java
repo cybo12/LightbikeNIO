@@ -1,16 +1,16 @@
+import java.nio.channels.SocketChannel;
+
 /**
  * Just to structure player's data.
  */
 public class PlayerData {
     private  int id;
-    private  IntBikeUser intBikeUser;
+    private SocketChannel client;
     private  String name;
     private  int score = 0;
 
-    public PlayerData(int id, IntBikeUser intBikeUser,String name) {
-        this.id = id;
-        this.intBikeUser = intBikeUser;
-        this.name = name;
+    public PlayerData(SocketChannel client) {
+        this.client = client;
     }
 
     @Override
@@ -22,11 +22,17 @@ public class PlayerData {
         return id;
     }
 
-
-    public IntBikeUser getIntBikeUser() {
-        return intBikeUser;
+    public void setId(int id) {
+        this.id = id;
     }
 
+    public SocketChannel getClient() {
+        return client;
+    }
+
+    public void setClient(SocketChannel client) {
+        this.client = client;
+    }
 
     public String getName() {
         return name;
@@ -40,6 +46,7 @@ public class PlayerData {
         this.score = score;
     }
 
-
+    public void setName(String pseudo) {
+    }
 }
 

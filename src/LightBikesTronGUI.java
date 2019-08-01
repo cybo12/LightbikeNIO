@@ -12,7 +12,6 @@ public class LightBikesTronGUI extends JFrame {
     static final long serialVersionUID = 201906281539L;
     //Inner representation of the grid
     public static int[][] iGrid = new int[100][100];
-    final IntBikeUser bikeUser;
     final String gameName;
     //Objects to store the image and the 2D environment
     BufferedImage image;
@@ -22,10 +21,11 @@ public class LightBikesTronGUI extends JFrame {
     private JLabel jLabel1;
     private JTextField jYourScore;
     private BikeWaitingRoomJoined bikeWaitingRoomJoined;
+    private BikeUser bikeUser;
     // Creates new form GUI
-    public LightBikesTronGUI(IntBikeUser bikeUser, String gameName, BikeWaitingRoomJoined bikeWaitingRoomJoined) {
-        this.bikeUser = bikeUser;
+    public LightBikesTronGUI(BikeUser bikeUser,String gameName, BikeWaitingRoomJoined bikeWaitingRoomJoined) {
         this.gameName = gameName;
+        this.bikeUser = bikeUser;
         this.bikeWaitingRoomJoined = bikeWaitingRoomJoined;
         initComponents();
 
@@ -115,37 +115,27 @@ public class LightBikesTronGUI extends JFrame {
     }
 
     //This is where we refresh the grid with the new one, given as argument
-    public void refreshGrid(int[][] newGrid) {
-        boolean bChanged = false;
-        for (int i = 0; i < 100; i++) {
-            for (int j = 0; j < 100; j++) {
-                if (newGrid[i][j] != iGrid[i][j]) {
-                    //Detects when a tile has been changed
-                    bChanged = true;
-                    iGrid[i][j] = newGrid[i][j];
+    public void refreshGrid(int[] change) {
+        int i = change[0];
+        int j = change[1];
+        iGrid[i][j] = change[2];
 
-                    //Apply the color corresponding to the given player
-                    //One tile = 4x4 px
-                    if (newGrid[i][j] == 1) {
-                        g2.setColor(Color.RED);
-                        g2.fillRect(i * 4, j * 4, 4, 4);
-                    } else if (newGrid[i][j] == 2) {
-                        g2.setColor(Color.BLUE);
-                        g2.fillRect(i * 4, j * 4, 4, 4);
-                    } else if (newGrid[i][j] == 3) {
-                        g2.setColor(Color.YELLOW);
-                        g2.fillRect(i * 4, j * 4, 4, 4);
-                    } else if (newGrid[i][j] == 4) {
-                        g2.setColor(Color.GREEN);
-                        g2.fillRect(i * 4, j * 4, 4, 4);
-                    }
-                }
-            }
+        //Apply the color corresponding to the given player
+        //One tile = 4x4 px
+        if (change[2] == 1) {
+            g2.setColor(Color.RED);
+            g2.fillRect(i * 4, j * 4, 4, 4);
+        } else if (change[2] == 2) {
+            g2.setColor(Color.BLUE);
+            g2.fillRect(i * 4, j * 4, 4, 4);
+        } else if (change[2] == 3) {
+            g2.setColor(Color.YELLOW);
+            g2.fillRect(i * 4, j * 4, 4, 4);
+        } else if (change[2] == 4) {
+            g2.setColor(Color.GREEN);
+            g2.fillRect(i * 4, j * 4, 4, 4);
         }
-
-        //Only repaint the frame when something has changed (efficiency)
-        if (bChanged)
-            this.repaint();
+        this.repaint();
     }
 
     public void startGameGrid() throws RemoteException {
@@ -163,14 +153,14 @@ public class LightBikesTronGUI extends JFrame {
 
 
     //This method updates the frame
-    public void update(int[][] gameGrid) throws RemoteException {
+    public void update(int[] change){
         //Updates the score
-        boolean alive = bikeUser.getServer().getAlivePlayer(gameName,bikeUser.getPseudo());
+        boolean alive = bikeUser.getAlivePlayer();
         if(alive) {
             jYourScore.setText(bikeUser.getServer().getPlayerScore(gameName) + "");// --- OK
         }
         //Refresh the image
-        refreshGrid(gameGrid); // --- OK
+        refreshGrid(change); // --- OK
 
     }
     private void formKeyPressed(KeyEvent evt) throws RemoteException {//GEN-FIRST:event_formKeyPressed

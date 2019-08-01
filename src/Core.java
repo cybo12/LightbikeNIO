@@ -20,11 +20,14 @@ public class Core {
     public AtomicBoolean bGameQuit = new AtomicBoolean(false);										//Is the program about to be closed
     public String sWinnerName = "NOBODY";								//Current winner of the game
     public IAI[] aiOpponents = new IAI[4];											//AI for non-human players
+    public Game game;                                                               //for update grid
 
     private int[][] iGrid = new int[100][100];									//Inner grid representation (0 = empty, any = player id)
     private int[][] iTimer = new int[100][100];									//Memorizes the "freshness" of paths, for AI to use.
 
-
+    public Core(Game game) {
+        this.game = game;
+    }
 
     //main method called by the handling thread
     public void runGame()
@@ -136,7 +139,8 @@ public class Core {
                             
                             //This particular tile is now no longer available
                             iGrid[ixCarPos[i]][iyCarPos[i]] = (i+1);
-                            
+                            int[] change = {ixCarPos[i],iyCarPos[i],iGrid[ixCarPos[i]][iyCarPos[i]]};
+                            game.updateGameGrid(change);
                             //This tile gets a freshness of 10
                             iTimer[ixCarPos[i]][iyCarPos[i]] = 10;
 
@@ -183,11 +187,6 @@ public class Core {
 
     }
 
-    //Returns the representation of the grid
-    public int[][] getGrid()
-    {
-        return iGrid;
-    }
 
     //Resets everything
     public void newGrid()
@@ -244,8 +243,8 @@ public class Core {
         return cCarDir;
     }
 
-    public void setcCarDir(char[] cCarDir) {
-        this.cCarDir = cCarDir;
+    public void setcCarDir(int i, char cCarDir) {
+        this.cCarDir[i] = cCarDir;
     }
 
     public boolean[] getbGameInProgress() {

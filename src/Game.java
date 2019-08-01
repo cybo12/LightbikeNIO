@@ -1,5 +1,4 @@
 import java.lang.*;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Semaphore;
@@ -17,7 +16,7 @@ public class Game implements java.io.Serializable {
 
 
     public Game(String name){
-        cCore = new Core();
+        cCore = new Core(this);
         this.name = name;
     }
 
@@ -34,6 +33,7 @@ public class Game implements java.io.Serializable {
           if(players.size() == playersReady){
               for(int x=0;x<maxPlayers;x++){
                 if(x<players.size()) {
+                    players.get(x).setId(x);
                     cCore.getbIsHuman()[x] = true;
                 }else{
                     cCore.getbIsHuman()[x] = false;
@@ -85,8 +85,7 @@ public class Game implements java.io.Serializable {
      */
     public boolean addPlayer(IntBikeUser user) throws RemoteException {
         if(players.size()<maxPlayers && gameStarted == 0) {
-            players.add(new PlayerData(playerID,user,user.getPseudo()));
-            playerID+=1;
+            players.add(new PlayerData(user,user.getPseudo()));
             return true;
         }
         else{
@@ -117,7 +116,7 @@ public class Game implements java.io.Serializable {
     }
 
     /**
-     * Take the thime to correctly delete à player from a game. Launch by BikeServer.removeUser
+     * Take the time to correctly delete à player from a game. Launch by BikeServer.removeUser
      * @param intBikeUser
      */
     public void removePlayer(IntBikeUser intBikeUser) throws RemoteException {
@@ -149,8 +148,7 @@ public class Game implements java.io.Serializable {
                 //System.out.println("direction voulue:" + carDirection);
                 //System.out.println("direction x: "+x);
                 if(x==1 || x==3) {
-                    directions[p.getId()] = carDirection;
-                    cCore.setcCarDir(directions);
+                    cCore.setcCarDir(p.getId(),carDirection);
                 }
             }
         }
@@ -196,11 +194,6 @@ public class Game implements java.io.Serializable {
             for(int x=0;x<maxPlayers;x++){
                 if(x<players.size()){
                     PlayerData p = players.get(x);
-                    try {
-                        p.getIntBikeUser().updateGameGrid(cCore.getGrid());
-                    } catch (RemoteException e) {
-                        removePlayer(p.getIntBikeUser());
-                    }
                     if(!cCore.getbGameInProgress()[p.getId()]){
                         if(p.getScore()==0) {
                             p.setScore(cCore.getScore());
@@ -246,6 +239,12 @@ public class Game implements java.io.Serializable {
     }
 
 
+    public void updateGameGrid(int[] change) throws RemoteException {
+        for(PlayerData p : players){
+                p.getIntBikeUser().updateGameGrid(change);
+        }
+
+    }
     /**
      * launch by the Check Thread for reset the room and notify all players.
      * @param sWinnerName

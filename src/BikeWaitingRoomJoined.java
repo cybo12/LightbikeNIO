@@ -1,5 +1,4 @@
 import javax.swing.*;
-import java.rmi.RemoteException;
 
 public class BikeWaitingRoomJoined {
     private JPanel mainPanel;
@@ -7,7 +6,7 @@ public class BikeWaitingRoomJoined {
     private JButton notReadyPressForButton;
     private Boolean readyState = false;
     public JFrame waitingJoinedGUI;
-    public BikeWaitingRoomJoined(IntBikeUser bikeUser, String gameName) throws RemoteException {
+    public BikeWaitingRoomJoined(BikeUser bikeUser, String gameName) {
         waitingJoinedGUI = new JFrame();
         waitingJoinedGUI.setContentPane(mainPanel);
         waitingJoinedGUI.setTitle(bikeUser.getPseudo() + " in game : " + gameName);
@@ -16,12 +15,8 @@ public class BikeWaitingRoomJoined {
         waitingJoinedGUI.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                try {
-                    bikeUser.getServer().removeUser(bikeUser);
+                    bikeUser.removeUser();
                     System.exit(0);
-                } catch (RemoteException e1) {
-                    e1.printStackTrace();
-                }
                 e.getWindow().dispose();
                 System.out.println("JFrame Closed!");
             }

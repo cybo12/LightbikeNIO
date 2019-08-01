@@ -4,6 +4,7 @@ import java.awt.event.ActionListener;
 import java.net.Inet4Address;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
+import java.nio.channels.SocketChannel;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -19,7 +20,9 @@ public class BikeUserCredGUI {
     private JTextField ipTextField;
     private JButton conButton;
     private JPanel promptPanel;
-    private IntServer server = null;
+    private BikeUser bikeUser;
+    private ArrayList<String> inUse;
+
 
     public BikeUserCredGUI() throws UnknownHostException {
         ipTextField.setText(Inet4Address.getLocalHost().getHostAddress());
@@ -39,30 +42,18 @@ public class BikeUserCredGUI {
              */
             public void actionPerformed(ActionEvent e) {
                 if ((pseudoTextField.getText().length() > 3) && (ValidIP.validate(ipTextField.getText())) || ipTextField.getText().equals("localhost")) {
-                    try {
-                        if (server == null) {
-                            server = (IntServer) Naming.lookup("rmi://" + ipTextField.getText() + "/myserver"); //We don't want an error, the server will anyways be assigned once(stub)
-                        }
+                        bikeUser = new BikeUser(ipTextField.getText());
                         System.out.println("yes");
-                        ArrayList<String> inUse = server.getPseudosInUse();
+                        bikeUser.getPseudoInUse();
                         if (inUse.contains(pseudoTextField.getText())) {
                             JOptionPane.showMessageDialog(null, "This pseudo is already in use, please change");
                             pseudoTextField.setText("");
                         } else {
-                            IntBikeUser bikeUser = new BikeUser(server, pseudoTextField.getText());
-                            bikeUser.createWaitingRoom(bikeUser);
-                            server.Connect(bikeUser);
-                            ((BikeUser) bikeUser).setBikeUserLocal(bikeUser);
+                            bikeUser.setPseudo(pseudoTextField.getText());
+                            bikeUser.createWaitingRoom();
+                            bikeUser.connect();
                             promptCredits.dispose();
                         }
-                    } catch (RemoteException e1) {
-                        e1.printStackTrace();
-                        JOptionPane.showMessageDialog(null, "The IP address may be wrong.");
-                    } catch (NotBoundException e1) {
-                        e1.printStackTrace();
-                    } catch (MalformedURLException e1) {
-                        e1.printStackTrace();
-                    }
                 }
             }
         });
@@ -73,5 +64,9 @@ public class BikeUserCredGUI {
         for (int i = 0; i < length; i++)
             sb.append(SOURCE.charAt(rand.nextInt(SOURCE.length())));
         return sb.toString();
+    }
+
+    public void setInUse(ArrayList<String> inUse) {
+        this.inUse = inUse;
     }
 }

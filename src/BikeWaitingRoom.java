@@ -3,7 +3,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.rmi.*;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 
 
@@ -13,8 +13,9 @@ public class BikeWaitingRoom {
     private JTextField gameNameTextField;
     private JPanel mainPanel;
     private String selectedGameName;
+    private ArrayList<String> gameNamesInUse;
 
-    public BikeWaitingRoom(IntBikeUser bikeUser) throws RemoteException {
+    public BikeWaitingRoom(BikeUser bikeUser) {
         JFrame waitingGUI = new JFrame();
         gameNameTextField.setText(BikeUserCredGUI.randomString(6));
         waitingGUI.setContentPane(mainPanel);
@@ -24,11 +25,7 @@ public class BikeWaitingRoom {
         waitingGUI.addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
-                try {
-                    bikeUser.getServer().removeUser(bikeUser);
-                } catch (RemoteException e1) {
-                    e1.printStackTrace();
-                }
+                    bikeUser.removeUser();
                 e.getWindow().dispose();
                 System.exit(0);
                 System.out.println("JFrame Closed!");
@@ -44,7 +41,7 @@ public class BikeWaitingRoom {
                 String gameName = gameNameTextField.getText();
                 if (gameName.length() >= 3) {
                     try {
-                        ArrayList<String> gameNamesInUse = bikeUser.getServer().getGameNames();
+                        bikeUser.getGameNames();
                         if (gameNamesInUse.contains(gameName)) {
                             JOptionPane.showMessageDialog(null, "This game name is already in use, please change");
                             gameNameTextField.setText("Please no");
@@ -102,6 +99,9 @@ public class BikeWaitingRoom {
         gameList.repaint();
     }
 
+    public void setGameNamesInUse(ArrayList<String> gameNamesInUse) {
+        this.gameNamesInUse = gameNamesInUse;
+    }
 }
 
 

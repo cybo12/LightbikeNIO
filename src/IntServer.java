@@ -91,4 +91,5 @@ public interface IntServer extends Remote {
      * @param
      */
       void relaunchUpdateGameList(String bikeUsername) throws RemoteException;
+
 }
