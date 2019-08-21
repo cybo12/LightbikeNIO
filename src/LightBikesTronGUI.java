@@ -292,8 +292,8 @@ public class LightBikesTronGUI extends JFrame {
     // End of variables declaration//GEN-END:variables
 
 
-    public void setAlive(boolean alive) {
-        this.alive = alive;
+    public void setAlive(byte alive) {
+        this.alive = alive!=0;
     }
 
 }

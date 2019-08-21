@@ -14,9 +14,12 @@ public class PlayerData {
     public PlayerData(SocketChannel client ,String pseudo) {
         this.client = client;
         this.pseudo = pseudo;
+        gamename = "";
     }
     public PlayerData(SocketChannel client) {
         this.client = client;
+        pseudo ="";
+        gamename = "";
     }
     @Override
     public String toString() {

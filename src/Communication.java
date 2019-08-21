@@ -82,8 +82,13 @@ public class Communication {
         return baos.toByteArray();
     }
 
-    public String getString(byte[] bytes) throws UnsupportedEncodingException {
-        String str = new String(bytes, "UTF-8");
+    public String getString(byte[] bytes){
+        String str = null;
+        try {
+            str = new String(bytes, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         return str;
     }
 

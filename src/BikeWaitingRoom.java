@@ -40,7 +40,6 @@ public class BikeWaitingRoom {
             public void actionPerformed(ActionEvent e) {
                 String gameName = gameNameTextField.getText();
                 if (gameName.length() >= 3) {
-                    try {
                         bikeUser.getGameNames();
                         if (gameNamesInUse.contains(gameName)) {
                             JOptionPane.showMessageDialog(null, "This game name is already in use, please change");
@@ -48,9 +47,6 @@ public class BikeWaitingRoom {
                         } else {
                             bikeUser.createGame(gameName);
                         }
-                    } catch (RemoteException e1) {
-                        e1.printStackTrace();
-                    }
                 }
             }
         });
@@ -60,14 +56,11 @@ public class BikeWaitingRoom {
                 super.mouseClicked(e);
                 if (e.getClickCount() == 2) {
                     selectedGameName = gameList.getSelectedValue().toString();
-                    try {
                         bikeUser.createWaitingRoomJoined(bikeUser,selectedGameName);
-                        bikeUser.getServer().joiningWaitingGame(bikeUser.getPseudo(),selectedGameName);
+                        bikeUser.joiningWaitingGame(selectedGameName);
                         System.out.println(selectedGameName);
                         waitingGUI.dispose();
-                    } catch (RemoteException e1) {
-                        e1.printStackTrace();
-                    }
+
 
                 }
             }

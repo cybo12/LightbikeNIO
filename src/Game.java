@@ -118,15 +118,15 @@ public class Game implements java.io.Serializable {
 
     /**
      * Take all position's input from player in a game and after verifications modify it in the core.
-     * @param bikeUsername
+     * @param client
      * @param carDirection
      */
-    public void setDirection(String bikeUsername, char carDirection) {
+    public void setDirection(SocketChannel client, char carDirection) {
         ArrayList<Character> checkDirections = new ArrayList<>(Arrays.asList('U','L','D','R'));
         //System.out.println("checkDirections :"+checkDirections);
         char[] directions = cCore.getcCarDir();
         for(PlayerData p : players){
-            if(p.getName().equals(bikeUsername)){
+            if(p.getClient().equals(client)){
                 char initialDirection = directions[p.getId()];
                 int x = Math.abs(checkDirections.indexOf(initialDirection)-checkDirections.indexOf(carDirection));
                 //System.out.println("direction actuelle : "+initialDirection);
@@ -151,14 +151,14 @@ public class Game implements java.io.Serializable {
 
 
     /**
-     * Get the ID of a player whand you give his name
-     * @param name
+     * Get the ID of a player whand you give his SocketChannel
+     * @param client
      * @return
      */
-    public int getPlayerID(String name){
+    public int getPlayerID(SocketChannel client){
         int returnId = 99;
         for(PlayerData p : players){
-            if (p.getName().equals(name)) {
+            if (p.getClient().equals(client)) {
                 returnId = p.getId();
             }
         }

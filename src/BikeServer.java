@@ -1,4 +1,5 @@
 import java.io.*;
+import java.rmi.RemoteException;
 import java.util.*;
 import java.net.Inet4Address;
 import java.nio.*;
@@ -110,8 +111,34 @@ public class BikeServer {
                 break;
             case GameEvent.REMOVEUSER:
                 this.removeUser(client);
+                break;
             case GameEvent.RELAUNCHUPDATEGAMELIST:
                 this.relaunchUpdateGameList(client);
+                break;
+            case GameEvent.CHANGEDIRECTION:
+                this.changeDirection(client,payload[0]);
+                break;
+            case GameEvent.GETALIVEPLAYER:
+                this.getAlivePlayer(client);
+                break;
+            case GameEvent.GETPSEUDOSINUSE:
+                this.getPseudosInUse(client);
+                break;
+            case GameEvent.JOININGWAITINGGAME:
+                this.joiningWaitingGame(client,com.getString(payload));
+                break;
+            case GameEvent.GETGAMENAMES:
+                this.getGameNames(client);
+                break;
+            case GameEvent.CREATEGAME:
+                this.createGame(payload);
+                break;
+            case GameEvent.PLAYERREADYSTATE:
+                this.playerReadyState(client,payload[0]!=0);
+                break;
+                case GameEvent.GETPLAYERSCORE:
+                    this.getPlayerScore(client);
+                    break;
             default:
                 System.out.println("c'est la merde");
 
@@ -157,10 +184,14 @@ public class BikeServer {
     }
 
 
-    public ArrayList<String> getPseudosInUse() {
+    public void getPseudosInUse(SocketChannel client) {
         ArrayList<String> names = getNames(users);
         System.out.println("pseudo lists: " + names);
-        return names;
+        try {
+            com.sendBytes(GameEvent.GETPSEUDOSINUSE,client,com.arraylistToBytes(names));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -169,38 +200,47 @@ public class BikeServer {
         users.remove(client);
         removeUserFromGames(games, client);
         removeUserFromGames(gamesActives, client);
-
+        try {
+            client.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         System.out.println("remove user:" + pseudo);
     }
 
     public void removeUserFromGames(HashMap<String, Game> games, SocketChannel bikeUser) {
+        users.get(bikeUser).setGamename("");
         games.forEach((k, v) -> {
             if (v.getPlayers().contains(bikeUser)) {
                     v.removePlayer(bikeUser);
                 v.getPlayers().forEach((n) -> {
                     try {
-                        n.updatePlayersInGameWaiting(v.getPlayersName());
-                    } catch (RemoteException e) {
-                        System.out.println("il n'est plus au bout du fil");
+                        com.sendBytes(GameEvent.UPDATEPLAYERSINGAMEWAITING,n,com.arraylistToBytes(v.getPlayersName()));
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 });
             }
         });
     }
 
-    public ArrayList<String> getGameNames() {
-        ArrayList<String> names = getNames(games);
-        System.out.println("gameNames list:" + names);
-        return names;
+    public void getGameNames(SocketChannel client) {
+        try {
+            com.sendBytes(GameEvent.GETGAMENAMES,client,com.arraylistToBytes(getNames(games)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("gameNames list:" + getNames(games));
     }
 
 
-    public void createGame(String gameName) {
+    public void createGame(byte[] payload) {
+        String gameName = com.getString(payload);
         games.put(gameName, new Game(gameName));
-        users.forEach((k, v) -> {
+        users.forEach((k,v) -> {
             try {
-                v.updateGameList(getNames(games));
-            } catch (RemoteException e) {
+                com.sendBytes(GameEvent.UPDATEGAMELIST,k,com.arraylistToBytes(getNames(games)));
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         });
@@ -215,59 +255,68 @@ public class BikeServer {
     }
 
 
-    public void joiningWaitingGame(String bikeUsername, String gameName){
-        SocketChannel bikeUser = users.get(bikeUsername);
+    public void joiningWaitingGame(SocketChannel client,String gameName){
         Game game = games.get(gameName);
+        PlayerData player = users.get(client);
+        player.setGamename(gameName);
         boolean check = false;
-        try {
-            check = game.addPlayer(bikeUser);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            check = game.addPlayer(player);
         if (!check) {
-            System.out.println(bikeUsername + " try to join game complete");
+            System.out.println(player.getName() + " try to join game complete");
         } else {
             System.out.println(game.getPlayersName());
             game.getPlayers().forEach((n) -> {
                 try {
-                    n.updatePlayersInGameWaiting(game.getPlayersName());
-                } catch (RemoteException e) {
+                    com.sendBytes(GameEvent.UPDATEPLAYERSINGAMEWAITING,n,com.arraylistToBytes(game.getPlayersName()));
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             });
-            System.out.println("player " + bikeUsername + " join game: " + gameName);
+            System.out.println("player " + player.getName() + " join game: " + gameName);
         }
     }
 
 
-    public void playerReadyState(String bikeUsername, String gameName, Boolean readyState) throws InterruptedException {
-        games.get(gameName).setPlayerReady(readyState);
-        System.out.println("player " + bikeUsername + " readiness is " + readyState);
+    public void playerReadyState(SocketChannel client,Boolean readyState){
+        try {
+            games.get(users.get(client).getGamename()).setPlayerReady(readyState);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        System.out.println("player " + client.toString() + " readiness is " + readyState);
 
     }
 
 
-    public int getPlayerScore(String gameName)  {
-        return gamesActives.get(gameName).getcCore().getScore();
+    public void getPlayerScore(SocketChannel client)  {
+        short score = gamesActives.get(users.get(client).getGamename()).getcCore().getScore();
+        byte[] data = new byte[5];
+        data[0] = (byte) (score & 0xFF);
+        data[1] = (byte) ((score >> 8) & 0xFF);
+        com.sendBytes(GameEvent.GETPLAYERSCORE,client,data);
     }
 
 
-    public void changeDirection(String bikeUsername, String gameName, char carDirection) {
-        gamesActives.get(gameName).setDirection(bikeUsername, carDirection);
+    public void changeDirection(SocketChannel client, byte carDirection) {
+        String gameName = users.get(client).getGamename();
+        gamesActives.get(gameName).setDirection(client,(char) carDirection);
     }
 
-    public boolean getAlivePlayer(String gameName, String playerName) {
-        int id = getPlayerId(gameName, playerName);
-        boolean response = false;
+    public void getAlivePlayer(SocketChannel client) {
+        String gameName = users.get(client).getGamename();
+        int id = gamesActives.get(gameName).getPlayerID(client);
+        boolean bool = false;
         if (id != 99) {
             try {
-                response = gamesActives.get(gameName).getcCore().getbGameInProgress()[id];
+                bool = gamesActives.get(gameName).getcCore().getbGameInProgress()[id];
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("mais tu n'existes plus dans le jeu n'essaye pas");
             }
         }
-        return response;
+        byte[] response = new byte[1];
+        response[0] = (byte)(bool? 1 : 0 );
+        com.sendBytes(GameEvent.GETALIVEPLAYER,client,response);
     }
 
     public void relaunchUpdateGameList(SocketChannel client){
@@ -278,9 +327,6 @@ public class BikeServer {
         }
     }
 
-    public int getPlayerId(String gameName, String pseudo) {
-        return gamesActives.get(gameName).getPlayerID(pseudo);
-    }
 
 
     private ArrayList<String> getNames(HashMap hash) {

@@ -60,7 +60,7 @@ public class BikeUser implements Runnable {
                 prompt.setInUse(com.bytesToArraylist(payload));
                 break;
             case GameEvent.GETALIVEPLAYER:
-                lightBikesTronGUI.setAlive(payload[0]!=0);
+                lightBikesTronGUI.setAlive(payload[0]);
                 break;
             case GameEvent.GETPLAYERSCORE:
                 this.setScore(payload[0]);
@@ -73,6 +73,7 @@ public class BikeUser implements Runnable {
                 break;
             case GameEvent.ENDGAME:
                 lightBikesTronGUI.ending(com.getString(payload));
+                player.setGamename("");
             case GameEvent.UPDATEGAMELIST:
                 DefaultListModel modelGameList = convertToModel(com.bytesToArraylist(payload));
                 bikeWaitingRoom.updateGameListGUI(modelGameList);
@@ -173,11 +174,17 @@ public class BikeUser implements Runnable {
     }
 
     public void playerReadyState(boolean readyState){
-
+        byte[] send = {(byte) (readyState?1:0)};
+        com.sendBytes(GameEvent.PLAYERREADYSTATE,player.getClient(),send);
     }
 
     public void relaunchUpdateGameList() {
         com.sendBytes(GameEvent.RELAUNCHUPDATEGAMELIST,player.getClient());
 
+    }
+
+    public void joiningWaitingGame(String selectedGameName) {
+        com.sendBytes(GameEvent.JOININGWAITINGGAME,player.getClient(),selectedGameName.getBytes());
+        player.setGamename(selectedGameName);
     }
 }

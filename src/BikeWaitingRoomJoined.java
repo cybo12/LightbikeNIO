@@ -26,23 +26,16 @@ public class BikeWaitingRoomJoined {
         notReadyPressForButton.addActionListener(e -> {
             if(notReadyPressForButton.getToolTipText().equals("no")){
                 readyState = true;
-                try {
                     System.out.println("Player ready " + bikeUser.getPseudo());
-                    bikeUser.getServer().playerReadyState(bikeUser.getPseudo(), gameName, readyState);
-                } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                }
+                    bikeUser.playerReadyState(readyState);
+
                 notReadyPressForButton.setToolTipText("Rady or not");
                 notReadyPressForButton.setText("You're ready (click for not)");
             }else{
                 readyState = false;
                 notReadyPressForButton.setToolTipText("no");
                 notReadyPressForButton.setText("Not ready (press for Ready)");
-                try {
-                    bikeUser.getServer().playerReadyState(bikeUser.getPseudo(), gameName, readyState);
-                } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                }
+                    bikeUser.playerReadyState(readyState);
             }
         });
     }
@@ -80,6 +73,7 @@ public class BikeWaitingRoomJoined {
         waitingJoinedGUI.setVisible(false);
     }
 
-
-
+    public void setReadyState(Boolean readyState) {
+        this.readyState = readyState;
+    }
 }
