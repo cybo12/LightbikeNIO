@@ -29,7 +29,7 @@ public class BikeWaitingRoomJoined {
                 try {
                     System.out.println("Player ready " + bikeUser.getPseudo());
                     bikeUser.getServer().playerReadyState(bikeUser.getPseudo(), gameName, readyState);
-                } catch (RemoteException | InterruptedException e1) {
+                } catch (InterruptedException e1) {
                     e1.printStackTrace();
                 }
                 notReadyPressForButton.setToolTipText("Rady or not");
@@ -40,7 +40,7 @@ public class BikeWaitingRoomJoined {
                 notReadyPressForButton.setText("Not ready (press for Ready)");
                 try {
                     bikeUser.getServer().playerReadyState(bikeUser.getPseudo(), gameName, readyState);
-                } catch (RemoteException | InterruptedException e1) {
+                } catch (InterruptedException e1) {
                     e1.printStackTrace();
                 }
             }
@@ -55,7 +55,6 @@ public class BikeWaitingRoomJoined {
     /**
      * This class is only used to test the display, don't delete it
      *
-     * @throws RemoteException
      */
     public BikeWaitingRoomJoined() {
         JFrame waitingJoinedGUI = new JFrame();

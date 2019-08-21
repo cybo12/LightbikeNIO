@@ -8,11 +8,16 @@ public class PlayerData {
     private SocketChannel client;
     private  String name;
     private  int score = 0;
+    private String gamename;
+    private String pseudo;
 
+    public PlayerData(SocketChannel client ,String pseudo) {
+        this.client = client;
+        this.pseudo = pseudo;
+    }
     public PlayerData(SocketChannel client) {
         this.client = client;
     }
-
     @Override
     public String toString() {
         return "PlayerData: "+id+" name :"+name ;
@@ -46,7 +51,23 @@ public class PlayerData {
         this.score = score;
     }
 
-    public void setName(String pseudo) {
+    public void setName(String pseudo) { this.name = pseudo;
+    }
+
+    public String getGamename() {
+        return gamename;
+    }
+
+    public void setGamename(String gamename) {
+        this.gamename = gamename;
+    }
+
+    public String getPseudo() {
+        return pseudo;
+    }
+
+    public void setPseudo(String pseudo) {
+        this.pseudo = pseudo;
     }
 }
 

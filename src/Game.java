@@ -1,4 +1,5 @@
 import java.lang.*;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Semaphore;
@@ -13,6 +14,7 @@ public class Game implements java.io.Serializable {
     private int playersReady = 0;
     private ArrayList<PlayerData> players = new ArrayList<PlayerData>();
     private int playerID = 0;
+    private Communication com;
 
 
     public Game(String name){
@@ -40,23 +42,11 @@ public class Game implements java.io.Serializable {
                 }
               }
               //LAUNCH TIME
-              players.forEach((n)-> {
-                  try {
-                      n.getIntBikeUser().startGame(getPlayersName(),name);
-                  } catch (RemoteException e) {
-                      e.printStackTrace();
-                  }
-              });
+              players.forEach((n)-> com.sendBytes(GameEvent.STARTGAME,n.getClient(),name.getBytes()));
               System.out.println("send preparing game start");
               gameStarted = 1;
               Thread.sleep(2000);
-              players.forEach((n)-> {
-                  try {
-                      n.getIntBikeUser().startGameGrid();
-                  } catch (RemoteException e) {
-                      e.printStackTrace();
-                  }
-              });
+              players.forEach((n)-> com.sendBytes(GameEvent.STARTGAMEGRID,n.getClient()));
               System.out.println("send game start");
               Thread gameThread = new Thread(() -> cCore.runGame());
               gameThread.start();
@@ -77,15 +67,10 @@ public class Game implements java.io.Serializable {
       }
     }
 
-    /**
-     * Add player to a game.
-     * @param user
-     * @return
-     * @throws RemoteException
-     */
-    public boolean addPlayer(IntBikeUser user) throws RemoteException {
+
+    public boolean addPlayer(PlayerData player){
         if(players.size()<maxPlayers && gameStarted == 0) {
-            players.add(new PlayerData(user,user.getPseudo()));
+            players.add(player);
             return true;
         }
         else{
@@ -107,10 +92,10 @@ public class Game implements java.io.Serializable {
      * get a arraylist of core's players
      * @return
      */
-    public ArrayList<IntBikeUser> getPlayers() {
-        ArrayList<IntBikeUser> intBikeUsers = new ArrayList<>();
+    public ArrayList<SocketChannel> getPlayers() {
+        ArrayList<SocketChannel> intBikeUsers = new ArrayList<>();
         for(PlayerData p :this.players){
-            intBikeUsers.add(p.getIntBikeUser());
+            intBikeUsers.add(p.getClient());
         }
         return intBikeUsers;
     }
@@ -119,10 +104,10 @@ public class Game implements java.io.Serializable {
      * Take the time to correctly delete à player from a game. Launch by BikeServer.removeUser
      * @param intBikeUser
      */
-    public void removePlayer(IntBikeUser intBikeUser) throws RemoteException {
+    public void removePlayer(SocketChannel intBikeUser){
         for(int x=0;x<players.size();x++){
             PlayerData p = players.get(x);
-            if(p.getIntBikeUser().getPseudo().equals(intBikeUser.getPseudo())){
+            if(p.getClient().equals(intBikeUser)){
                 System.out.println("game "+ name +" remove player: "+p.getName());
                 cCore.getbGameInProgress()[p.getId()]=false;
                 players.remove(p);
@@ -184,7 +169,7 @@ public class Game implements java.io.Serializable {
      * Thread who check who is alive for blocking input from dead players and when you have to end the game properly.
      * @throws InterruptedException
      */
-    private void checkThread() throws InterruptedException, RemoteException {
+    private void checkThread() throws InterruptedException {
         boolean flag = true;
         boolean first = false;
         while (flag) {
@@ -239,11 +224,16 @@ public class Game implements java.io.Serializable {
     }
 
 
-    public void updateGameGrid(int[] change) throws RemoteException {
+    public void updateGameGrid(int[] change){
+        byte[] data = new byte[5];
+        data[0] = (byte) (change[0] & 0xFF);
+        data[1] = (byte) ((change[0] >> 8) & 0xFF);
+        data[2] = (byte) (change[1] & 0xFF);
+        data[3] = (byte) ((change[2] >> 8) & 0xFF);
+        data[4] = (byte) change[3];
         for(PlayerData p : players){
-                p.getIntBikeUser().updateGameGrid(change);
+            com.sendBytes(GameEvent.UPDATEGAMEGRID,p.getClient(),data);
         }
-
     }
     /**
      * launch by the Check Thread for reset the room and notify all players.
@@ -253,11 +243,7 @@ public class Game implements java.io.Serializable {
         players.forEach(n -> {
             //System.out.println("endgame");
             //System.out.println(n.getName());
-            try {
-                n.getIntBikeUser().endGame(sWinnerName,n.getScore());
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
+            com.sendBytes(GameEvent.ENDGAME,n.getClient(),sWinnerName.getBytes());
         });
     }
 }

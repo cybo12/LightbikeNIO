@@ -1,6 +1,5 @@
 import javax.swing.*;
 import java.io.IOException;
-import java.nio.*;
 import java.nio.channels.*;
 import java.net.*;
 import java.rmi.RemoteException;
@@ -60,20 +59,37 @@ public class BikeUser implements Runnable {
             case GameEvent.GETPSEUDOSINUSE:
                 prompt.setInUse(com.bytesToArraylist(payload));
                 break;
+            case GameEvent.GETALIVEPLAYER:
+                lightBikesTronGUI.setAlive(payload[0]!=0);
+                break;
+            case GameEvent.GETPLAYERSCORE:
+                this.setScore(payload[0]);
+                break;
+            case GameEvent.UPDATEGAMEGRID:
+                lightBikesTronGUI.update(payload);
+                break;
+            case GameEvent.STARTGAMEGRID:
+                lightBikesTronGUI.startGameGrid();
+                break;
+            case GameEvent.ENDGAME:
+                lightBikesTronGUI.ending(com.getString(payload));
+            case GameEvent.UPDATEGAMELIST:
+                DefaultListModel modelGameList = convertToModel(com.bytesToArraylist(payload));
+                bikeWaitingRoom.updateGameListGUI(modelGameList);
+                break;
+            case GameEvent.STARTGAME:
+                this.startGame(com.getString(payload));
+                break;
+            case GameEvent.UPDATEPLAYERSINGAMEWAITING:
+                this.updatePlayersInGameWaiting(com.bytesToArraylist(payload));
+                break;
         }
     }
 
-    public static void main(String[] args) throws RemoteException, UnknownHostException {
+    public static void main(String[] args) throws UnknownHostException {
         prompt = new BikeUserCredGUI();
     }
 
-    /**
-     * @return the pseudo of the chatuser
-     * @throws RemoteException
-     */
-    public String getPseudo(){
-        return player.getName();
-    }
 
     public void connect(){
         com.sendBytes(GameEvent.CONNECT,player.getClient(),this.getPseudo().getBytes());
@@ -83,10 +99,6 @@ public class BikeUser implements Runnable {
         bikeWaitingRoom = new BikeWaitingRoom(this);
     }
 
-    public void updateGameList(ArrayList<String> gameList) throws RemoteException {
-        DefaultListModel modelGameList = convertToModel(gameList);
-        bikeWaitingRoom.updateGameListGUI(modelGameList);
-    }
 
     private DefaultListModel convertToModel(ArrayList<String> gameList) {
         DefaultListModel modelGameList = new DefaultListModel();
@@ -96,15 +108,15 @@ public class BikeUser implements Runnable {
         return modelGameList;
     }
 
-    public void createGame(String gameName) throws RemoteException {
+    public void createGame(String gameName) {
         com.sendBytes(GameEvent.CREATEGAME,player.getClient(),gameName.getBytes());
     }
 
-    public void createWaitingRoomJoined(BikeUser bikeUser, String gameName) throws RemoteException {
+    public void createWaitingRoomJoined(BikeUser bikeUser, String gameName) {
         bikeWaitingRoomJoined = new BikeWaitingRoomJoined(bikeUser, gameName);
     }
 
-    public void updatePlayersInGameWaiting(ArrayList<String> updatePlayersList) throws RemoteException {
+    public void updatePlayersInGameWaiting(ArrayList<String> updatePlayersList){
         if (updatePlayersList.size() < 4) {
             for (int i = updatePlayersList.size(); i < 4; i++) {
                 updatePlayersList.add("IA");
@@ -114,28 +126,26 @@ public class BikeUser implements Runnable {
         bikeWaitingRoomJoined.updatePlayerListGUI(modelPlayersWaiting);
     }
 
-    public void startGame(ArrayList<String> playerList, String gameName) throws RemoteException {
+    public void startGame(String gameName){
         lightBikesTronGUI = new LightBikesTronGUI(this,gameName,bikeWaitingRoomJoined);
         lightBikesTronGUI.setSize(500, 550);
         lightBikesTronGUI.setLocation(100, 100);
         lightBikesTronGUI.setVisible(true);
     }
 
-    public void endGame(String playerName, int playerScore) throws RemoteException {
-        lightBikesTronGUI.ending(playerName, playerScore);
 
+
+    /**
+     * @return the pseudo of the chatuser
+     * @throws RemoteException
+     */
+    public String getPseudo(){
+        return player.getName();
     }
 
-    public void startGameGrid() throws RemoteException {
+    public int getScore() {return player.getScore();}
 
-
-        lightBikesTronGUI.startGameGrid();
-    }
-
-    public void updateGameGrid(int[] change) throws RemoteException {
-        lightBikesTronGUI.update(change);
-    }
-
+    public void setScore(int score) {player.setScore(score);}
 
     public void setPseudo(String pseudo) {
         player.setName(pseudo);
@@ -153,7 +163,21 @@ public class BikeUser implements Runnable {
         com.sendBytes(GameEvent.GETGAMENAMES,player.getClient());
     }
 
-    public boolean getAlivePlayer() {
-        com.sendBytes(GameEvent.GETALIVEPLAYER,player.getClient();
+    public void getAlivePlayer() {
+        com.sendBytes(GameEvent.GETALIVEPLAYER,player.getClient());
+    }
+
+    public void changeDirection(char l) {
+        byte[] send = {(byte)l};
+        com.sendBytes(GameEvent.CHANGEDIRECTION,player.getClient(),send);
+    }
+
+    public void playerReadyState(boolean readyState){
+
+    }
+
+    public void relaunchUpdateGameList() {
+        com.sendBytes(GameEvent.RELAUNCHUPDATEGAMELIST,player.getClient());
+
     }
 }

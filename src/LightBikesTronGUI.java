@@ -22,6 +22,8 @@ public class LightBikesTronGUI extends JFrame {
     private JTextField jYourScore;
     private BikeWaitingRoomJoined bikeWaitingRoomJoined;
     private BikeUser bikeUser;
+    private boolean alive = true;
+    private Communication com;
     // Creates new form GUI
     public LightBikesTronGUI(BikeUser bikeUser,String gameName, BikeWaitingRoomJoined bikeWaitingRoomJoined) {
         this.gameName = gameName;
@@ -115,10 +117,10 @@ public class LightBikesTronGUI extends JFrame {
     }
 
     //This is where we refresh the grid with the new one, given as argument
-    public void refreshGrid(int[] change) {
-        int i = change[0];
-        int j = change[1];
-        iGrid[i][j] = change[2];
+    public void refreshGrid(byte[] change) {
+        int i = ((change[0] & 0xff) << 8) | (change[1] & 0xff);
+        int j = ((change[2] & 0xff) << 8) | (change[3] & 0xff);
+        iGrid[i][j] = change[4];
 
         //Apply the color corresponding to the given player
         //One tile = 4x4 px
@@ -138,7 +140,7 @@ public class LightBikesTronGUI extends JFrame {
         this.repaint();
     }
 
-    public void startGameGrid() throws RemoteException {
+    public void startGameGrid(){
         //The play button has been pressed, we restard the game
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, 400, 400);
@@ -153,37 +155,37 @@ public class LightBikesTronGUI extends JFrame {
 
 
     //This method updates the frame
-    public void update(int[] change){
+    public void update(byte[] change){
         //Updates the score
-        boolean alive = bikeUser.getAlivePlayer();
+        bikeUser.getAlivePlayer();
         if(alive) {
-            jYourScore.setText(bikeUser.getServer().getPlayerScore(gameName) + "");// --- OK
+            jYourScore.setText(bikeUser.getScore() + "");// --- OK
         }
         //Refresh the image
         refreshGrid(change); // --- OK
 
     }
-    private void formKeyPressed(KeyEvent evt) throws RemoteException {//GEN-FIRST:event_formKeyPressed
-        boolean alive = bikeUser.getServer().getAlivePlayer(gameName,bikeUser.getPseudo());
+    private void formKeyPressed(KeyEvent evt) {//GEN-FIRST:event_formKeyPressed
+        bikeUser.getAlivePlayer();
         // A key has been pressed. If a game is in progress, we must warn the core - in fact it's checking the player number
         System.out.println(alive);
         if (alive == true) {
             System.out.println("I'm alive");
             switch (evt.getKeyCode()) {
                 case KeyEvent.VK_LEFT:
-                    bikeUser.getServer().changeDirection(bikeUser.getPseudo(),gameName,'L'); // --- OK
+                    bikeUser.changeDirection('L'); // --- OK
                     System.out.println("I'm alive L");
                     break;
                 case KeyEvent.VK_RIGHT:
-                    bikeUser.getServer().changeDirection(bikeUser.getPseudo(),gameName,'R'); // --- OK
+                    bikeUser.changeDirection('R'); // --- OK
                     System.out.println("I'm alive R");
                     break;
                 case KeyEvent.VK_UP:
-                    bikeUser.getServer().changeDirection(bikeUser.getPseudo(),gameName,'U'); // --- OK
+                    bikeUser.changeDirection('U'); // --- OK
                     System.out.println("I'm alive U");
                     break;
                 case KeyEvent.VK_DOWN:
-                    bikeUser.getServer().changeDirection(bikeUser.getPseudo(),gameName,'D'); // --- OK
+                    bikeUser.changeDirection('D'); // --- OK
                     System.out.println("I'm alive D");
                     break;
                 default:
@@ -202,35 +204,19 @@ public class LightBikesTronGUI extends JFrame {
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent evt) {
                 formWindowClosing(evt);
-                try {
-                    bikeUser.getServer().removeUser(bikeUser);
+                    bikeUser.removeUser();
                     System.exit(0);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
             }
         });
         addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent evt) {
-                try {
                     formKeyPressed(evt);
                     System.out.println("I'm pressing");
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
             }
         });
 
         jButton1.setText("Go back to game-list");
-        jButton1.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent evt) {
-                try {
-                    jButton1ActionPerformed(evt);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+        jButton1.addActionListener(evt -> jButton1ActionPerformed(evt));
 
         jLabel1.setText("Your Score");
 
@@ -268,9 +254,9 @@ public class LightBikesTronGUI extends JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton1ActionPerformed(ActionEvent evt) throws RemoteException {//GEN-FIRST:event_jButton1ActionPerformed
-        bikeUser.createWaitingRoom(bikeUser);
-        bikeUser.getServer().relaunchUpdateGameList(bikeUser.getPseudo());
+    private void jButton1ActionPerformed(ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        bikeUser.createWaitingRoom();
+        bikeUser.relaunchUpdateGameList();
         this.dispose();
 
     }//GEN-LAST:event_jButton1ActionPerformed
@@ -281,8 +267,8 @@ public class LightBikesTronGUI extends JFrame {
     }//GEN-LAST:event_formWindowClosing
 
 
-    public void ending(String playerName, int playerScore) {
-        new Thread(()->JOptionPane.showMessageDialog(this, "GAME OVER\n" + playerName + " WINS!\nYour score : " + playerScore)).start();
+    public void ending(String username) {
+        new Thread(()->JOptionPane.showMessageDialog(this, "GAME OVER\n" + username + " WINS!\nYour score : " + bikeUser.getScore())).start();
         jButton1.setEnabled(true);
         bikeWaitingRoomJoined.disposeWindow();
 
@@ -294,11 +280,7 @@ public class LightBikesTronGUI extends JFrame {
         public boolean dispatchKeyEvent(KeyEvent e) {
             if (e.getID() == KeyEvent.KEY_PRESSED) {
                 //Detects when a key has been pressed
-                try {
                     formKeyPressed(e);
-                } catch (RemoteException e1) {
-                    e1.printStackTrace();
-                }
             } else if (e.getID() == KeyEvent.KEY_RELEASED) {
                 //just for testing, not very usefull
             } else if (e.getID() == KeyEvent.KEY_TYPED) {
@@ -308,5 +290,10 @@ public class LightBikesTronGUI extends JFrame {
         }
     }
     // End of variables declaration//GEN-END:variables
+
+
+    public void setAlive(boolean alive) {
+        this.alive = alive;
+    }
 
 }

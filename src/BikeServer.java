@@ -12,7 +12,7 @@ public class BikeServer {
     private static String serverIP;
     private static LinkedHashMap<String, Game> games = new LinkedHashMap<String, Game>();
     private static LinkedHashMap<String, Game> gamesActives = new LinkedHashMap<String, Game>();
-    private static LinkedHashMap<String, PlayerData> users = new LinkedHashMap<String,>();
+    private static LinkedHashMap<SocketChannel, PlayerData> users = new LinkedHashMap<>();
     private static ServerSocketChannel serverSocket;
     private static Communication com;
     //This is a reference to the core object, which has methods for all computations.
@@ -97,16 +97,24 @@ public class BikeServer {
 
         } // end for loop
     }
+    /*
+    HEHRHEHEHEHRHE
+    EGRHEHEHEHE
+    EHHEHEHEHE
+     */
 
     private void treathEvent(int event, byte[] payload, SocketChannel client) throws UnsupportedEncodingException {
         switch (event) {
             case GameEvent.CONNECT:
-                PlayerData player = new PlayerData(client,com.getString(payload));
-                users.put(com.getString(payload),player);
+                this.connect(client,com.getString((payload)));
                 break;
+            case GameEvent.REMOVEUSER:
+                this.removeUser(client);
+            case GameEvent.RELAUNCHUPDATEGAMELIST:
+                this.relaunchUpdateGameList(client);
             default:
                 System.out.println("c'est la merde");
-                ;
+
         }
     }
 
@@ -123,19 +131,28 @@ public class BikeServer {
                 gamesActives.put(gameName, game);
                 games.remove(gameName, game);
                 users.forEach((key, value) -> {
-                    value.updateGameList(getNames(games));
+                    try {
+                        com.sendBytes(GameEvent.UPDATEGAMELIST,key,com.arraylistToBytes(getNames(games)));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 });
             }
             Thread.sleep(1000);
         }
     }
 
-    public void connect(SocketChannel client, String name) throws IOException {
+    public void connect(SocketChannel client, String name) {
         PlayerData player = new PlayerData(client, name);
-        users.put(player.getName(), player);
-        byte[] toSend =  arraylistToBytes(getNames(games));
-        sendBytes(1, toSend,client);
-        player.updateGameList(getNames(games));
+        player.setClient(client);
+        users.put(client, player);
+        try {
+            byte[] toSend =  com.arraylistToBytes(getNames(games));
+            com.sendBytes(1,client,toSend);
+            com.sendBytes(GameEvent.UPDATEGAMELIST,client,com.arraylistToBytes(getNames(games)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         System.out.println("player connected: " + player.getName());
     }
 
@@ -147,22 +164,19 @@ public class BikeServer {
     }
 
 
-    public void removeUser(IntBikeUser bikeUser) throws RemoteException {
-        users.remove(bikeUser.getPseudo());
-        removeUserFromGames(games, bikeUser);
-        removeUserFromGames(gamesActives, bikeUser);
+    public void removeUser(SocketChannel client){
+        String pseudo = users.get(client).getName();
+        users.remove(client);
+        removeUserFromGames(games, client);
+        removeUserFromGames(gamesActives, client);
 
-        System.out.println("remove user:" + bikeUser.getPseudo());
+        System.out.println("remove user:" + pseudo);
     }
 
-    public void removeUserFromGames(HashMap<String, Game> games, IntBikeUser bikeUser) {
+    public void removeUserFromGames(HashMap<String, Game> games, SocketChannel bikeUser) {
         games.forEach((k, v) -> {
             if (v.getPlayers().contains(bikeUser)) {
-                try {
                     v.removePlayer(bikeUser);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
                 v.getPlayers().forEach((n) -> {
                     try {
                         n.updatePlayersInGameWaiting(v.getPlayersName());
@@ -201,8 +215,8 @@ public class BikeServer {
     }
 
 
-    public void joiningWaitingGame(String bikeUsername, String gameName) throws RemoteException {
-        IntBikeUser bikeUser = users.get(bikeUsername);
+    public void joiningWaitingGame(String bikeUsername, String gameName){
+        SocketChannel bikeUser = users.get(bikeUsername);
         Game game = games.get(gameName);
         boolean check = false;
         try {
@@ -226,23 +240,23 @@ public class BikeServer {
     }
 
 
-    public void playerReadyState(String bikeUsername, String gameName, Boolean readyState) throws RemoteException, InterruptedException {
+    public void playerReadyState(String bikeUsername, String gameName, Boolean readyState) throws InterruptedException {
         games.get(gameName).setPlayerReady(readyState);
         System.out.println("player " + bikeUsername + " readiness is " + readyState);
 
     }
 
 
-    public int getPlayerScore(String gameName) throws RemoteException {
+    public int getPlayerScore(String gameName)  {
         return gamesActives.get(gameName).getcCore().getScore();
     }
 
 
-    public void changeDirection(String bikeUsername, String gameName, char carDirection) throws RemoteException {
+    public void changeDirection(String bikeUsername, String gameName, char carDirection) {
         gamesActives.get(gameName).setDirection(bikeUsername, carDirection);
     }
 
-    public boolean getAlivePlayer(String gameName, String playerName) throws RemoteException {
+    public boolean getAlivePlayer(String gameName, String playerName) {
         int id = getPlayerId(gameName, playerName);
         boolean response = false;
         if (id != 99) {
@@ -256,12 +270,15 @@ public class BikeServer {
         return response;
     }
 
-    public void relaunchUpdateGameList(String bikeUsername) throws RemoteException {
-        IntBikeUser bikeUser = users.get(bikeUsername);
-        bikeUser.updateGameList(getNames(games));
+    public void relaunchUpdateGameList(SocketChannel client){
+        try {
+            com.sendBytes(GameEvent.RELAUNCHUPDATEGAMELIST,client,com.arraylistToBytes(getNames(games)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public int getPlayerId(String gameName, String pseudo) throws RemoteException {
+    public int getPlayerId(String gameName, String pseudo) {
         return gamesActives.get(gameName).getPlayerID(pseudo);
     }
 

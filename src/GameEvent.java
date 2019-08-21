@@ -1,6 +1,5 @@
 class GameEvent {
     public static final int GETPSEUDO = 1;
-    public static final int GETSERVER = 2;
     public static final int CREATEWAITINGROOM = 3;
     public static final int UPDATEGAMELIST = 4;
     public static final int CREATEGAME = 5;
@@ -19,4 +18,5 @@ class GameEvent {
     public static final int GETPLAYERSCORE = 18;
     public static final int CHANGEDIRECTION = 19;
     public static final int GETALIVEPLAYER = 20;
+    public static final int RELAUNCHUPDATEGAMELIST = 21;
 }
