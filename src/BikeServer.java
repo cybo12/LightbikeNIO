@@ -25,8 +25,6 @@ public class BikeServer {
 
         try {
             BikeServer bikeServer = new BikeServer();
-
-            System.out.println("Server ready at address: " + serverIP + "/myserver");
         } catch (Exception e) {
             System.err.println("Server exception:");
             e.printStackTrace();
@@ -37,6 +35,7 @@ public class BikeServer {
     private BikeServer() throws IOException {
         try {
             serverIP = Inet4Address.getLocalHost().getHostAddress();
+            System.out.println("Server ready at address: " + serverIP );
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -64,7 +63,7 @@ public class BikeServer {
             Iterator<SelectionKey> iter = selectedKeys.iterator();
 
             while (iter.hasNext()) {
-
+                System.out.println("loop");
                 SelectionKey ky = iter.next();
 
                 if (ky.isAcceptable()) {
@@ -77,19 +76,22 @@ public class BikeServer {
                     client.register(selector, SelectionKey.OP_READ);
                     System.out.println("Accepted new connection from client: " + client);
                 } else if (ky.isReadable()) {
-
+                    System.out.println("read");
                     // Read the data from client
 
                     SocketChannel client = (SocketChannel) ky.channel();
-                    ByteBuffer buffer = ByteBuffer.allocate(3);
-                    client.read(buffer);
                     byte[] header = com.readFully(3, client);
+                    System.out.println("Message read from client: " + header);
                     int payloadLength = header[2];
                     int event = header[1];
-                    byte[] payload = com.readFully(payloadLength, client);
+                    byte[] payload = {0};
+                    if (payloadLength != 0) {
+                       payload = com.readFully(payloadLength, client);
+                    }
                     treathEvent(event, payload, client);
-                    System.out.println("Message read from client: " + header);
 
+                } else if (ky.isWritable()) {
+                    ky.interestOps(SelectionKey.OP_READ);
                 }
 
                 iter.remove();
@@ -106,6 +108,10 @@ public class BikeServer {
 
     private void treathEvent(int event, byte[] payload, SocketChannel client) throws UnsupportedEncodingException {
         switch (event) {
+            case GameEvent.HELLO:
+                System.out.println("hello from : ");
+                System.out.println(client);
+                break;
             case GameEvent.CONNECT:
                 this.connect(client,com.getString((payload)));
                 break;

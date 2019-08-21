@@ -34,6 +34,8 @@ public class Communication {
 
     public void sendBytes(int type,SocketChannel client,byte[] bytes) {
         try {
+            System.out.print("send bytes :");
+            System.out.println(bytes);
             //first get payload as bytes, so we know its length in advance...
             byte[] payload = bytes;
 

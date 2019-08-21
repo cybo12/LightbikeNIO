@@ -1,5 +1,5 @@
 class GameEvent {
-    public static final int GETPSEUDO = 1;
+    public static final int HELLO = 1;
     public static final int CREATEWAITINGROOM = 3;
     public static final int UPDATEGAMELIST = 4;
     public static final int CREATEGAME = 5;

@@ -25,7 +25,9 @@ public class BikeUser implements Runnable {
         try
         {
             player = new PlayerData(SocketChannel.open(new InetSocketAddress(address, port)));
-
+            com.sendBytes(GameEvent.HELLO,player.getClient());
+            System.out.print("my client :");
+            System.out.println(player.getClient());
             //start a thread to receive data
             new Thread(this).start();
         }
@@ -43,6 +45,8 @@ public class BikeUser implements Runnable {
             {
                 //read the next header
                 byte[] header = com.readFully(3,player.getClient());
+                System.out.print("from server :");
+                System.out.println(header);
                 //get the payload length from the header
                 int payloadLength = header[2];
                 byte[] message = com.readFully(payloadLength,player.getClient());
@@ -51,10 +55,13 @@ public class BikeUser implements Runnable {
             catch(Exception e)
             {
                 System.out.println("Error receiving data: " + e);
+                System.exit(0);
             }
         }
     }
     private void treathEvent(int event, byte[] payload, SocketChannel client) throws IOException {
+        System.out.println("event:");
+        System.out.println(event);
         switch(event){
             case GameEvent.GETPSEUDOSINUSE:
                 prompt.setInUse(com.bytesToArraylist(payload));
@@ -75,8 +82,7 @@ public class BikeUser implements Runnable {
                 lightBikesTronGUI.ending(com.getString(payload));
                 player.setGamename("");
             case GameEvent.UPDATEGAMELIST:
-                DefaultListModel modelGameList = convertToModel(com.bytesToArraylist(payload));
-                bikeWaitingRoom.updateGameListGUI(modelGameList);
+                this.updateGameList(payload);
                 break;
             case GameEvent.STARTGAME:
                 this.startGame(com.getString(payload));
@@ -85,10 +91,6 @@ public class BikeUser implements Runnable {
                 this.updatePlayersInGameWaiting(com.bytesToArraylist(payload));
                 break;
         }
-    }
-
-    public static void main(String[] args) throws UnknownHostException {
-        prompt = new BikeUserCredGUI();
     }
 
 
@@ -100,6 +102,15 @@ public class BikeUser implements Runnable {
         bikeWaitingRoom = new BikeWaitingRoom(this);
     }
 
+    public void updateGameList(byte[] payload){
+        DefaultListModel modelGameList = null;
+        try {
+            modelGameList = convertToModel(com.bytesToArraylist(payload));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        bikeWaitingRoom.updateGameListGUI(modelGameList);
+    }
 
     private DefaultListModel convertToModel(ArrayList<String> gameList) {
         DefaultListModel modelGameList = new DefaultListModel();
@@ -186,5 +197,10 @@ public class BikeUser implements Runnable {
     public void joiningWaitingGame(String selectedGameName) {
         com.sendBytes(GameEvent.JOININGWAITINGGAME,player.getClient(),selectedGameName.getBytes());
         player.setGamename(selectedGameName);
+    }
+
+
+    public static void main(String[] args) throws UnknownHostException {
+        prompt = new BikeUserCredGUI();
     }
 }
