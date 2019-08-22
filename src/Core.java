@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class Core {
 
-    public  short score = 0;																//Player score (~= number of seconds played)
+    public  int score = 0;																//Player score (~= number of seconds played)
     private int runTime = 0;																		//Number of "game ticks"
     private int gameRunTime = 0;																//Unused. Used to make a sync every X game ticks
     private int gameMaxRunTime = 1;															//Ibid.
@@ -226,7 +226,7 @@ public class Core {
     }
 
 
-    public short getScore() {
+    public int getScore() {
         return score;
     }
 

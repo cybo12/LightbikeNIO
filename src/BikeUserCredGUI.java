@@ -21,7 +21,7 @@ public class BikeUserCredGUI {
     private JButton conButton ;
     private JPanel promptPanel;
     private BikeUser bikeUser;
-    private ArrayList<String> inUse;
+    private ArrayList<String> inUse = new ArrayList<>();
 
 
     public BikeUserCredGUI() throws UnknownHostException {
@@ -38,23 +38,23 @@ public class BikeUserCredGUI {
          * Check if IP is correct, pseudo > 3 chars, then creating the stub.
          * Once the stub is created ; checking if the pseudo is not already in use (=register on the server)
          */conButton.addActionListener(e -> {
-             if ((pseudoTextField.getText().length() > 3) && (ValidIP.validate(ipTextField.getText())) || ipTextField.getText().equals("localhost")) {
-                     if(bikeUser ==null) {
-                         bikeUser = new BikeUser(ipTextField.getText());
-                     }
-                     System.out.println("yes");
-                     bikeUser.getPseudoInUse();
-                     if (inUse.contains(pseudoTextField.getText())) {
-                         JOptionPane.showMessageDialog(null, "This pseudo is already in use, please change");
-                         pseudoTextField.setText("");
-                     } else {
-                         bikeUser.setPseudo(pseudoTextField.getText());
-                         bikeUser.createWaitingRoom();
-                         bikeUser.connect();
-                         promptCredits.dispose();
-                     }
-             }
-         });
+            if ((pseudoTextField.getText().length() > 3) && (ValidIP.validate(ipTextField.getText())) || ipTextField.getText().equals("localhost")) {
+                if(bikeUser ==null) {
+                    bikeUser = new BikeUser(ipTextField.getText());
+                }
+                System.out.println("yes");
+                bikeUser.getPseudoInUse();
+                if (inUse.contains(pseudoTextField.getText())) {
+                    JOptionPane.showMessageDialog(null, "This pseudo is already in use, please change");
+                    pseudoTextField.setText("");
+                } else {
+                    bikeUser.setPseudo(pseudoTextField.getText());
+                    bikeUser.createWaitingRoom();
+                    bikeUser.connect();
+                    promptCredits.dispose();
+                }
+            }
+        });
     }
     public static String randomString(int length) {
         StringBuilder sb = new StringBuilder(length);

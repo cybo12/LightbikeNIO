@@ -11,15 +11,15 @@ public class BikeUser implements Runnable {
     protected BikeWaitingRoomJoined bikeWaitingRoomJoined;
     protected LightBikesTronGUI lightBikesTronGUI;
     private PlayerData player;
-    private Communication com;
+    private Communication com = new Communication();
     private static int NIOPortNum = 1100;
 
 
     public BikeUser(String ipAddress) {
-        connectToServer(ipAddress, NIOPortNum);
+        connectToServer( ipAddress, NIOPortNum);
     }
 
-    public void connectToServer(String address, int port)
+    public void connectToServer(String address, int port )
     {
         //open a TCP connection to the server
         try
@@ -45,8 +45,6 @@ public class BikeUser implements Runnable {
             {
                 //read the next header
                 byte[] header = com.readFully(3,player.getClient());
-                System.out.print("from server :");
-                System.out.println(header);
                 //get the payload length from the header
                 int payloadLength = header[2];
                 byte[] message = com.readFully(payloadLength,player.getClient());
@@ -60,8 +58,10 @@ public class BikeUser implements Runnable {
         }
     }
     private void treathEvent(int event, byte[] payload, SocketChannel client) throws IOException {
-        System.out.println("event:");
-        System.out.println(event);
+        if (event != 20 && event != 11 && event !=18) {
+            System.out.print("from server event:");
+            System.out.println(event);
+        }
         switch(event){
             case GameEvent.GETPSEUDOSINUSE:
                 prompt.setInUse(com.bytesToArraylist(payload));
@@ -70,7 +70,7 @@ public class BikeUser implements Runnable {
                 lightBikesTronGUI.setAlive(payload[0]);
                 break;
             case GameEvent.GETPLAYERSCORE:
-                this.setScore(payload[0]);
+                this.setScore(payload);
                 break;
             case GameEvent.UPDATEGAMEGRID:
                 lightBikesTronGUI.update(payload);
@@ -90,6 +90,13 @@ public class BikeUser implements Runnable {
             case GameEvent.UPDATEPLAYERSINGAMEWAITING:
                 this.updatePlayersInGameWaiting(com.bytesToArraylist(payload));
                 break;
+            case GameEvent.RELAUNCHUPDATEGAMELIST:
+                this.updateGameList(payload);
+                break;
+            default:
+                System.out.println("c'est la merde");
+                System.out.println(event);
+                System.out.println(payload);
         }
     }
 
@@ -109,7 +116,9 @@ public class BikeUser implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        bikeWaitingRoom.updateGameListGUI(modelGameList);
+        if(modelGameList != null) {
+            bikeWaitingRoom.updateGameListGUI(modelGameList);
+        }
     }
 
     private DefaultListModel convertToModel(ArrayList<String> gameList) {
@@ -152,15 +161,23 @@ public class BikeUser implements Runnable {
      * @throws RemoteException
      */
     public String getPseudo(){
-        return player.getName();
+        return player.getPseudo();
     }
 
-    public int getScore() {return player.getScore();}
+    public int getScore() {
+        com.sendBytes(GameEvent.GETPLAYERSCORE,player.getClient());
+        return  player.getScore();
+    }
 
-    public void setScore(int score) {player.setScore(score);}
+    public void setScore(byte[] data) {
+        int score = (data[0] << 24)
+                + ((data[1] & 0xFF) << 16)
+                + ((data[2] & 0xFF) << 8)
+                + (data[3] & 0xFF);
+        player.setScore(score);}
 
     public void setPseudo(String pseudo) {
-        player.setName(pseudo);
+        player.setPseudo(pseudo);
     }
 
     public void getPseudoInUse() {
@@ -169,6 +186,11 @@ public class BikeUser implements Runnable {
 
     public void removeUser() {
         com.sendBytes(GameEvent.REMOVEUSER,player.getClient());
+        try {
+            player.getClient().close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void getGameNames() {

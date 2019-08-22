@@ -15,7 +15,7 @@ public class BikeServer {
     private static LinkedHashMap<String, Game> gamesActives = new LinkedHashMap<String, Game>();
     private static LinkedHashMap<SocketChannel, PlayerData> users = new LinkedHashMap<>();
     private static ServerSocketChannel serverSocket;
-    private static Communication com;
+    private static Communication com = new Communication();
     //This is a reference to the core object, which has methods for all computations.
     //Has been made public static, so that the GUI can see it and call its methods.
 
@@ -54,16 +54,16 @@ public class BikeServer {
 
         while (true) {
 
-            System.out.println("Waiting for select...");
+            //System.out.println("Waiting for select...");
             int noOfKeys = selector.select();
 
-            System.out.println("Number of selected keys: " + noOfKeys);
+            //System.out.println("Number of selected keys: " + noOfKeys);
 
             Set selectedKeys = selector.selectedKeys();
             Iterator<SelectionKey> iter = selectedKeys.iterator();
 
             while (iter.hasNext()) {
-                System.out.println("loop");
+                //System.out.println("loop");
                 SelectionKey ky = iter.next();
 
                 if (ky.isAcceptable()) {
@@ -76,12 +76,11 @@ public class BikeServer {
                     client.register(selector, SelectionKey.OP_READ);
                     System.out.println("Accepted new connection from client: " + client);
                 } else if (ky.isReadable()) {
-                    System.out.println("read");
+                    //System.out.println("read");
                     // Read the data from client
 
                     SocketChannel client = (SocketChannel) ky.channel();
                     byte[] header = com.readFully(3, client);
-                    System.out.println("Message read from client: " + header);
                     int payloadLength = header[2];
                     int event = header[1];
                     byte[] payload = {0};
@@ -107,10 +106,12 @@ public class BikeServer {
      */
 
     private void treathEvent(int event, byte[] payload, SocketChannel client) throws UnsupportedEncodingException {
+        if (event != 20 && event != 11 && event !=18) {
+            System.out.println("Message read from client: " + event);
+        }
         switch (event) {
             case GameEvent.HELLO:
-                System.out.println("hello from : ");
-                System.out.println(client);
+                System.out.println("hello ");
                 break;
             case GameEvent.CONNECT:
                 this.connect(client,com.getString((payload)));
@@ -147,7 +148,7 @@ public class BikeServer {
                     break;
             default:
                 System.out.println("c'est la merde");
-
+                System.out.println(event);
         }
     }
 
@@ -165,6 +166,7 @@ public class BikeServer {
                 games.remove(gameName, game);
                 users.forEach((key, value) -> {
                     try {
+                        System.out.println(getNames(games));
                         com.sendBytes(GameEvent.UPDATEGAMELIST,key,com.arraylistToBytes(getNames(games)));
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -176,17 +178,16 @@ public class BikeServer {
     }
 
     public void connect(SocketChannel client, String name) {
-        PlayerData player = new PlayerData(client, name);
-        player.setClient(client);
+        PlayerData player = new PlayerData(client);
+        System.out.println(player);
+        player.setPseudo(name);
         users.put(client, player);
         try {
-            byte[] toSend =  com.arraylistToBytes(getNames(games));
-            com.sendBytes(1,client,toSend);
             com.sendBytes(GameEvent.UPDATEGAMELIST,client,com.arraylistToBytes(getNames(games)));
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("player connected: " + player.getName());
+        System.out.println("player connected: " + player.getPseudo());
     }
 
 
@@ -202,7 +203,7 @@ public class BikeServer {
 
 
     public void removeUser(SocketChannel client){
-        String pseudo = users.get(client).getName();
+        String pseudo = users.get(client).getPseudo();
         users.remove(client);
         removeUserFromGames(games, client);
         removeUserFromGames(gamesActives, client);
@@ -215,7 +216,6 @@ public class BikeServer {
     }
 
     public void removeUserFromGames(HashMap<String, Game> games, SocketChannel bikeUser) {
-        users.get(bikeUser).setGamename("");
         games.forEach((k, v) -> {
             if (v.getPlayers().contains(bikeUser)) {
                     v.removePlayer(bikeUser);
@@ -232,7 +232,7 @@ public class BikeServer {
 
     public void getGameNames(SocketChannel client) {
         try {
-            com.sendBytes(GameEvent.GETGAMENAMES,client,com.arraylistToBytes(getNames(games)));
+            com.sendBytes(GameEvent.UPDATEGAMELIST,client,com.arraylistToBytes(getNames(games)));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -243,6 +243,7 @@ public class BikeServer {
     public void createGame(byte[] payload) {
         String gameName = com.getString(payload);
         games.put(gameName, new Game(gameName));
+        System.out.println(games);
         users.forEach((k,v) -> {
             try {
                 com.sendBytes(GameEvent.UPDATEGAMELIST,k,com.arraylistToBytes(getNames(games)));
@@ -267,18 +268,25 @@ public class BikeServer {
         player.setGamename(gameName);
         boolean check = false;
             check = game.addPlayer(player);
+        System.out.print("players in game:");
+        System.out.println(game.getPlayersName());
         if (!check) {
-            System.out.println(player.getName() + " try to join game complete");
+            System.out.println(player.getPseudo() + " try to join game complete");
         } else {
             System.out.println(game.getPlayersName());
             game.getPlayers().forEach((n) -> {
                 try {
-                    com.sendBytes(GameEvent.UPDATEPLAYERSINGAMEWAITING,n,com.arraylistToBytes(game.getPlayersName()));
+                    System.out.println(game);
+                    if(game.getPlayersName() == null) {
+                        com.sendBytes(GameEvent.UPDATEPLAYERSINGAMEWAITING, n, com.arraylistToBytes(game.getPlayersName()));
+                    }else{
+                        com.sendBytes(GameEvent.UPDATEPLAYERSINGAMEWAITING, n);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             });
-            System.out.println("player " + player.getName() + " join game: " + gameName);
+            System.out.println("player " + player.getPseudo() + " join game: " + gameName);
         }
     }
 
@@ -295,10 +303,12 @@ public class BikeServer {
 
 
     public void getPlayerScore(SocketChannel client)  {
-        short score = gamesActives.get(users.get(client).getGamename()).getcCore().getScore();
-        byte[] data = new byte[5];
-        data[0] = (byte) (score & 0xFF);
-        data[1] = (byte) ((score >> 8) & 0xFF);
+        int score = gamesActives.get(users.get(client).getGamename()).getcCore().getScore();
+        byte[] data = new byte[] {
+                (byte)(score >>> 24),
+                (byte)(score >>> 16),
+                (byte)(score >>> 8),
+                (byte)score};
         com.sendBytes(GameEvent.GETPLAYERSCORE,client,data);
     }
 

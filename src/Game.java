@@ -1,4 +1,6 @@
 import java.lang.*;
+import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,14 +14,15 @@ public class Game implements java.io.Serializable {
     private int maxPlayers = 4;
     private Semaphore sem = new Semaphore(1);
     private int playersReady = 0;
-    private ArrayList<PlayerData> players = new ArrayList<PlayerData>();
+    private ArrayList<PlayerData> players;
     private int playerID = 0;
-    private Communication com;
+    private Communication com = new Communication();
 
 
     public Game(String name){
         cCore = new Core(this);
         this.name = name;
+        players = new ArrayList<>();
     }
 
     /**
@@ -42,7 +45,10 @@ public class Game implements java.io.Serializable {
                 }
               }
               //LAUNCH TIME
+              System.out.println(name);
+              System.out.println(players);
               players.forEach((n)-> com.sendBytes(GameEvent.STARTGAME,n.getClient(),name.getBytes()));
+              players.forEach(((n)-> n.setScore(0)));
               System.out.println("send preparing game start");
               gameStarted = 1;
               Thread.sleep(2000);
@@ -108,7 +114,7 @@ public class Game implements java.io.Serializable {
         for(int x=0;x<players.size();x++){
             PlayerData p = players.get(x);
             if(p.getClient().equals(intBikeUser)){
-                System.out.println("game "+ name +" remove player: "+p.getName());
+                System.out.println("game "+ name +" remove player: "+p.getPseudo());
                 cCore.getbGameInProgress()[p.getId()]=false;
                 players.remove(p);
             }
@@ -145,7 +151,7 @@ public class Game implements java.io.Serializable {
      */
     public ArrayList<String> getPlayersName(){
         ArrayList<String> names = new ArrayList<String>();
-        players.forEach((n)-> names.add(n.getName()));
+        players.forEach((n)-> names.add(n.getPseudo()));
         return names;
     }
 
@@ -180,10 +186,8 @@ public class Game implements java.io.Serializable {
                 if(x<players.size()){
                     PlayerData p = players.get(x);
                     if(!cCore.getbGameInProgress()[p.getId()]){
-                        if(p.getScore()==0) {
-                            p.setScore(cCore.getScore());
-                            System.out.println("end game for: " + p.getName());
-                        }
+                        p.setScore(cCore.getScore());
+                        System.out.println("end game for: " + p.getPseudo());
                         boolean[] check = cCore.getbGameInProgress();
                         int nb = maxPlayers;
                         for (boolean b : check) {
@@ -224,15 +228,13 @@ public class Game implements java.io.Serializable {
     }
 
 
-    public void updateGameGrid(int[] change){
-        byte[] data = new byte[5];
-        data[0] = (byte) (change[0] & 0xFF);
-        data[1] = (byte) ((change[0] >> 8) & 0xFF);
-        data[2] = (byte) (change[1] & 0xFF);
-        data[3] = (byte) ((change[2] >> 8) & 0xFF);
-        data[4] = (byte) change[3];
+    public void updateGameGrid(int[] change) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(change.length * 4);
+        IntBuffer intBuffer = byteBuffer.asIntBuffer();
+        intBuffer.put(change);
+        byte[] array = byteBuffer.array();
         for(PlayerData p : players){
-            com.sendBytes(GameEvent.UPDATEGAMEGRID,p.getClient(),data);
+            com.sendBytes(GameEvent.UPDATEGAMEGRID,p.getClient(),array);
         }
     }
     /**
@@ -240,6 +242,7 @@ public class Game implements java.io.Serializable {
      * @param sWinnerName
      */
     private void endgame(String sWinnerName) {
+        System.out.println(sWinnerName);
         players.forEach(n -> {
             //System.out.println("endgame");
             //System.out.println(n.getName());

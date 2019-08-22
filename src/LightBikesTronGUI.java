@@ -2,6 +2,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.rmi.RemoteException;
 
 /**
@@ -22,7 +25,7 @@ public class LightBikesTronGUI extends JFrame {
     private JTextField jYourScore;
     private BikeWaitingRoomJoined bikeWaitingRoomJoined;
     private BikeUser bikeUser;
-    private boolean alive = true;
+    private int alive = 1;
     private Communication com;
     // Creates new form GUI
     public LightBikesTronGUI(BikeUser bikeUser,String gameName, BikeWaitingRoomJoined bikeWaitingRoomJoined) {
@@ -118,22 +121,28 @@ public class LightBikesTronGUI extends JFrame {
 
     //This is where we refresh the grid with the new one, given as argument
     public void refreshGrid(byte[] change) {
-        int i = ((change[0] & 0xff) << 8) | (change[1] & 0xff);
-        int j = ((change[2] & 0xff) << 8) | (change[3] & 0xff);
-        iGrid[i][j] = change[4];
+        IntBuffer intBuf =
+                ByteBuffer.wrap(change)
+                        .order(ByteOrder.BIG_ENDIAN)
+                        .asIntBuffer();
+        int[] array = new int[intBuf.remaining()];
+        intBuf.get(array);
+        int i = array[0];
+        int j = array[1];
+        iGrid[i][j] = array[2];
 
         //Apply the color corresponding to the given player
         //One tile = 4x4 px
-        if (change[2] == 1) {
+        if (array[2] == 1) {
             g2.setColor(Color.RED);
             g2.fillRect(i * 4, j * 4, 4, 4);
-        } else if (change[2] == 2) {
+        } else if (array[2] == 2) {
             g2.setColor(Color.BLUE);
             g2.fillRect(i * 4, j * 4, 4, 4);
-        } else if (change[2] == 3) {
+        } else if (array[2] == 3) {
             g2.setColor(Color.YELLOW);
             g2.fillRect(i * 4, j * 4, 4, 4);
-        } else if (change[2] == 4) {
+        } else if (array[2] == 4) {
             g2.setColor(Color.GREEN);
             g2.fillRect(i * 4, j * 4, 4, 4);
         }
@@ -158,7 +167,8 @@ public class LightBikesTronGUI extends JFrame {
     public void update(byte[] change){
         //Updates the score
         bikeUser.getAlivePlayer();
-        if(alive) {
+        bikeUser.getScore();
+        if(alive == 1) {
             jYourScore.setText(bikeUser.getScore() + "");// --- OK
         }
         //Refresh the image
@@ -168,25 +178,24 @@ public class LightBikesTronGUI extends JFrame {
     private void formKeyPressed(KeyEvent evt) {//GEN-FIRST:event_formKeyPressed
         bikeUser.getAlivePlayer();
         // A key has been pressed. If a game is in progress, we must warn the core - in fact it's checking the player number
-        System.out.println(alive);
-        if (alive == true) {
-            System.out.println("I'm alive");
+        if (alive == 1) {
+            //System.out.println("I'm alive");
             switch (evt.getKeyCode()) {
                 case KeyEvent.VK_LEFT:
                     bikeUser.changeDirection('L'); // --- OK
-                    System.out.println("I'm alive L");
+                    //System.out.println("I'm alive L");
                     break;
                 case KeyEvent.VK_RIGHT:
                     bikeUser.changeDirection('R'); // --- OK
-                    System.out.println("I'm alive R");
+                    //System.out.println("I'm alive R");
                     break;
                 case KeyEvent.VK_UP:
                     bikeUser.changeDirection('U'); // --- OK
-                    System.out.println("I'm alive U");
+                    //System.out.println("I'm alive U");
                     break;
                 case KeyEvent.VK_DOWN:
                     bikeUser.changeDirection('D'); // --- OK
-                    System.out.println("I'm alive D");
+                    //System.out.println("I'm alive D");
                     break;
                 default:
                     break;
@@ -293,7 +302,7 @@ public class LightBikesTronGUI extends JFrame {
 
 
     public void setAlive(byte alive) {
-        this.alive = alive!=0;
+        this.alive = alive;
     }
 
 }

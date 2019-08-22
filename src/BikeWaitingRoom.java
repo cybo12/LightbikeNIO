@@ -13,7 +13,7 @@ public class BikeWaitingRoom {
     private JTextField gameNameTextField;
     private JPanel mainPanel;
     private String selectedGameName;
-    private ArrayList<String> gameNamesInUse;
+    private ArrayList<String> gameNamesInUse = new ArrayList<>();
 
     public BikeWaitingRoom(BikeUser bikeUser) {
         JFrame waitingGUI = new JFrame();

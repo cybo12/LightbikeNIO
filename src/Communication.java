@@ -34,8 +34,6 @@ public class Communication {
 
     public void sendBytes(int type,SocketChannel client,byte[] bytes) {
         try {
-            System.out.print("send bytes :");
-            System.out.println(bytes);
             //first get payload as bytes, so we know its length in advance...
             byte[] payload = bytes;
 
@@ -65,11 +63,21 @@ public class Communication {
 
     public ArrayList<String> bytesToArraylist(byte[] bytes) throws IOException {
         ArrayList<String> read = new ArrayList<String>();
-        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        DataInputStream in = new DataInputStream(bais);
-        while (in.available() > 0) {
-            String element = in.readUTF();
-            read.add(element);
+        System.out.println("array from bytes "+ bytes.length);
+        if(bytes.length<4){
+            read.add("");
+        }else {
+            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+            DataInputStream in = new DataInputStream(bais);
+            while (in.available() > 0) {
+                try {
+                    String element = in.readUTF();
+                    read.add(element);
+                }catch (EOFException e)
+                {
+                    System.out.println(e);
+                }
+            }
         }
         return read;
     }
