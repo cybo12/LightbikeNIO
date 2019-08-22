@@ -64,9 +64,7 @@ public class Communication {
     public ArrayList<String> bytesToArraylist(byte[] bytes) throws IOException {
         ArrayList<String> read = new ArrayList<String>();
         System.out.println("array from bytes "+ bytes.length);
-        if(bytes.length<4){
-            read.add("");
-        }else {
+        System.out.println(bytes);
             ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
             DataInputStream in = new DataInputStream(bais);
             while (in.available() > 0) {
@@ -75,10 +73,10 @@ public class Communication {
                     read.add(element);
                 }catch (EOFException e)
                 {
-                    System.out.println(e);
+                    break;
                 }
             }
-        }
+
         return read;
     }
 

@@ -4,7 +4,6 @@ import java.nio.IntBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.Semaphore;
 
 
 public class Game implements java.io.Serializable {
@@ -12,7 +11,6 @@ public class Game implements java.io.Serializable {
     private Core cCore;
     private int gameStarted = 0;
     private int maxPlayers = 4;
-    private Semaphore sem = new Semaphore(1);
     private int playersReady = 0;
     private ArrayList<PlayerData> players;
     private int playerID = 0;
@@ -186,8 +184,10 @@ public class Game implements java.io.Serializable {
                 if(x<players.size()){
                     PlayerData p = players.get(x);
                     if(!cCore.getbGameInProgress()[p.getId()]){
-                        p.setScore(cCore.getScore());
-                        System.out.println("end game for: " + p.getPseudo());
+                        if(p.getScore()==0) {
+                            p.setScore(cCore.getScore());
+                            System.out.println("end game for: " + p.getPseudo());
+                        }
                         boolean[] check = cCore.getbGameInProgress();
                         int nb = maxPlayers;
                         for (boolean b : check) {
@@ -207,6 +207,7 @@ public class Game implements java.io.Serializable {
                                 playerID = 0;
                                 playersReady = 0;
                                 System.out.println("endgame close");
+                                
                             }
                         }
 

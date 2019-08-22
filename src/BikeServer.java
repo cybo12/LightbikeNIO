@@ -99,15 +99,11 @@ public class BikeServer {
 
         } // end for loop
     }
-    /*
-    HEHRHEHEHEHRHE
-    EGRHEHEHEHE
-    EHHEHEHEHE
-     */
+
 
     private void treathEvent(int event, byte[] payload, SocketChannel client) throws UnsupportedEncodingException {
         if (event != 20 && event != 11 && event !=18) {
-            System.out.println("Message read from client: " + event);
+            System.out.println("Message read from  " + event);
         }
         switch (event) {
             case GameEvent.HELLO:
@@ -277,7 +273,7 @@ public class BikeServer {
             game.getPlayers().forEach((n) -> {
                 try {
                     System.out.println(game);
-                    if(game.getPlayersName() == null) {
+                    if(game.getPlayersName() != null) {
                         com.sendBytes(GameEvent.UPDATEPLAYERSINGAMEWAITING, n, com.arraylistToBytes(game.getPlayersName()));
                     }else{
                         com.sendBytes(GameEvent.UPDATEPLAYERSINGAMEWAITING, n);

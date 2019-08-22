@@ -112,12 +112,14 @@ public class BikeUser implements Runnable {
     public void updateGameList(byte[] payload){
         DefaultListModel modelGameList = null;
         try {
-            modelGameList = convertToModel(com.bytesToArraylist(payload));
+            ArrayList<String> load = com.bytesToArraylist(payload);
+            if (load !=null) {
+                modelGameList = convertToModel(com.bytesToArraylist(payload));
+                bikeWaitingRoom.updateGameListGUI(modelGameList);
+
+            }
         } catch (IOException e) {
             e.printStackTrace();
-        }
-        if(modelGameList != null) {
-            bikeWaitingRoom.updateGameListGUI(modelGameList);
         }
     }
 
