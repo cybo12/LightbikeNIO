@@ -5,6 +5,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 
 public class BikeWaitingRoom {
@@ -12,6 +15,7 @@ public class BikeWaitingRoom {
     private JList gameList;
     private JTextField gameNameTextField;
     private JPanel mainPanel;
+    private JButton leaderboar;
     private String selectedGameName;
     private ArrayList<String> gameNamesInUse = new ArrayList<>();
 
@@ -63,6 +67,14 @@ public class BikeWaitingRoom {
 
 
                 }
+            }
+        });
+        leaderboar.addActionListener(e -> {
+            try {
+                LinkedHashMap<Integer, String> data =  bikeUser.getLeaderboard();
+                Leadeboard lead = new Leadeboard(data);
+            } catch (RemoteException e1) {
+                e1.printStackTrace();
             }
         });
 

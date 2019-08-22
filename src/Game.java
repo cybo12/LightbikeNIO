@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 
-public class Game implements java.io.Serializable {
+public class Game{
     private String name;
     private Core cCore;
     private int gameStarted = 0;
@@ -207,7 +207,7 @@ public class Game implements java.io.Serializable {
                                 playerID = 0;
                                 playersReady = 0;
                                 System.out.println("endgame close");
-                                
+
                             }
                         }
 
@@ -250,4 +250,9 @@ public class Game implements java.io.Serializable {
             com.sendBytes(GameEvent.ENDGAME,n.getClient(),sWinnerName.getBytes());
         });
     }
+
+    public ArrayList<PlayerData> getPlayersData() {
+       return this.players;
+    }
+
 }

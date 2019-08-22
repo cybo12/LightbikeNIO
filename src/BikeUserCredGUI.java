@@ -16,6 +16,7 @@ import java.util.Random;
  */
 public class BikeUserCredGUI {
     static final String SOURCE = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    private IntServer server = null;
     private JTextField pseudoTextField;
     private JTextField ipTextField;
     private JButton conButton ;
@@ -39,8 +40,17 @@ public class BikeUserCredGUI {
          * Once the stub is created ; checking if the pseudo is not already in use (=register on the server)
          */conButton.addActionListener(e -> {
             if ((pseudoTextField.getText().length() > 3) && (ValidIP.validate(ipTextField.getText())) || ipTextField.getText().equals("localhost")) {
+                try{
                 if(bikeUser ==null) {
-                    bikeUser = new BikeUser(ipTextField.getText());
+                    server = (IntServer) Naming.lookup("rmi://" + ipTextField.getText() + "/myserver"); //We don't want an error, the server will anyways be assigned once(stub)
+                    bikeUser = new BikeUser(ipTextField.getText(),server);
+                }
+                } catch (NotBoundException e1) {
+                    e1.printStackTrace();
+                } catch (MalformedURLException e1) {
+                    e1.printStackTrace();
+                } catch (RemoteException e1) {
+                    e1.printStackTrace();
                 }
                 System.out.println("yes");
                 bikeUser.getPseudoInUse();

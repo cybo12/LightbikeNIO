@@ -1,12 +1,16 @@
 import java.io.*;
+import java.rmi.Naming;
 import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 import java.net.Inet4Address;
-import java.nio.*;
 import java.nio.channels.*;
 import java.net.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class BikeServer {
+public class BikeServer extends UnicastRemoteObject implements IntServer {
 
     private static int RMIPortNum = 1099;
     private static int NIOPortNum = 1100;
@@ -16,6 +20,7 @@ public class BikeServer {
     private static LinkedHashMap<SocketChannel, PlayerData> users = new LinkedHashMap<>();
     private static ServerSocketChannel serverSocket;
     private static Communication com = new Communication();
+    private static LinkedHashMap<Integer, String> leaderboard = new LinkedHashMap<Integer, String>();
     //This is a reference to the core object, which has methods for all computations.
     //Has been made public static, so that the GUI can see it and call its methods.
 
@@ -25,6 +30,17 @@ public class BikeServer {
 
         try {
             BikeServer bikeServer = new BikeServer();
+            try {
+                Registry registry = LocateRegistry.getRegistry();
+                registry.list();
+            } catch (RemoteException e) {
+                Registry registry = LocateRegistry.createRegistry(RMIPortNum);
+            }
+            String registryURL = "rmi://" + serverIP + "/myserver";
+            Naming.rebind(registryURL, bikeServer);
+            System.out.println("Server ready at address: " + serverIP + "/myserver");
+            bikeServer.lauchNIOServer();
+
         } catch (Exception e) {
             System.err.println("Server exception:");
             e.printStackTrace();
@@ -33,12 +49,14 @@ public class BikeServer {
     }
 
     private BikeServer() throws IOException {
+        super();
         try {
             serverIP = Inet4Address.getLocalHost().getHostAddress();
-            System.out.println("Server ready at address: " + serverIP );
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    private  void lauchNIOServer()throws IOException{
         // Get selector
         Selector selector = Selector.open();
 
@@ -51,7 +69,6 @@ public class BikeServer {
         serverSocket.configureBlocking(false);
         int ops = serverSocket.validOps();
         SelectionKey selectKy = serverSocket.register(selector, ops, null);
-
         while (true) {
 
             //System.out.println("Waiting for select...");
@@ -85,9 +102,9 @@ public class BikeServer {
                     int event = header[1];
                     byte[] payload = {0};
                     if (payloadLength != 0) {
-                       payload = com.readFully(payloadLength, client);
+                        payload = com.readFully(payloadLength, client);
                     }
-                    treathEvent(event, payload, client);
+                    treatEvent(event, payload, client);
 
                 } else if (ky.isWritable()) {
                     ky.interestOps(SelectionKey.OP_READ);
@@ -101,7 +118,7 @@ public class BikeServer {
     }
 
 
-    private void treathEvent(int event, byte[] payload, SocketChannel client) throws UnsupportedEncodingException {
+    private void treatEvent(int event, byte[] payload, SocketChannel client) throws UnsupportedEncodingException {
         if (event != 20 && event != 11 && event !=18) {
             System.out.println("Message read from  " + event);
         }
@@ -139,9 +156,9 @@ public class BikeServer {
             case GameEvent.PLAYERREADYSTATE:
                 this.playerReadyState(client,payload[0]!=0);
                 break;
-                case GameEvent.GETPLAYERSCORE:
-                    this.getPlayerScore(client);
-                    break;
+            case GameEvent.GETPLAYERSCORE:
+                this.getPlayerScore(client);
+                break;
             default:
                 System.out.println("c'est la merde");
                 System.out.println(event);
@@ -173,6 +190,33 @@ public class BikeServer {
         }
     }
 
+    public void checkFinishGame(){
+        gamesActives.forEach((k,v) ->{
+        if (v.getGameStarted() == 2){
+            ArrayList<PlayerData> scores = v.getPlayersData();
+            scores.forEach(playerData -> {
+                if(!leaderboard.isEmpty()) {
+                    AtomicInteger min = new AtomicInteger();
+                    leaderboard.forEach((key, value) -> {
+                        if (min.get() < playerData.getScore()) {
+                            min.set(playerData.getScore());
+                        }
+                    });
+                    if (playerData.getScore() > min.get()) {
+                        if (leaderboard.size() <= 10) {
+                            leaderboard.remove(leaderboard.remove(min));
+                        }
+                    }
+                }
+                    leaderboard.put(playerData.getScore(),playerData.getPseudo());
+                    System.out.println("leadeboard : "+leaderboard);
+
+            });
+            System.out.println("remove game : "+ v);
+            gamesActives.remove(v);
+        }
+        });
+    }
     public void connect(SocketChannel client, String name) {
         PlayerData player = new PlayerData(client);
         System.out.println(player);
@@ -214,7 +258,7 @@ public class BikeServer {
     public void removeUserFromGames(HashMap<String, Game> games, SocketChannel bikeUser) {
         games.forEach((k, v) -> {
             if (v.getPlayers().contains(bikeUser)) {
-                    v.removePlayer(bikeUser);
+                v.removePlayer(bikeUser);
                 v.getPlayers().forEach((n) -> {
                     try {
                         com.sendBytes(GameEvent.UPDATEPLAYERSINGAMEWAITING,n,com.arraylistToBytes(v.getPlayersName()));
@@ -263,7 +307,7 @@ public class BikeServer {
         PlayerData player = users.get(client);
         player.setGamename(gameName);
         boolean check = false;
-            check = game.addPlayer(player);
+        check = game.addPlayer(player);
         System.out.print("players in game:");
         System.out.println(game.getPlayersName());
         if (!check) {
@@ -348,4 +392,9 @@ public class BikeServer {
     }
 
 
+    @Override
+    public LinkedHashMap<Integer, String> getLeaderbord() throws RemoteException {
+        this.checkFinishGame();
+        return leaderboard;
+    }
 }

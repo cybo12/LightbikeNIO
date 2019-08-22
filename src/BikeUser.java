@@ -2,8 +2,11 @@ import javax.swing.*;
 import java.io.IOException;
 import java.nio.channels.*;
 import java.net.*;
+import java.rmi.Naming;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 public class BikeUser implements Runnable {
     private static BikeUserCredGUI prompt;
@@ -13,14 +16,17 @@ public class BikeUser implements Runnable {
     private PlayerData player;
     private Communication com = new Communication();
     private static int NIOPortNum = 1100;
+    private IntServer server;
 
 
-    public BikeUser(String ipAddress) {
+    public BikeUser(String ipAddress, IntServer server) {
         connectToServer( ipAddress, NIOPortNum);
+        this.server = server;
     }
 
     public void connectToServer(String address, int port )
     {
+
         //open a TCP connection to the server
         try
         {
@@ -48,7 +54,7 @@ public class BikeUser implements Runnable {
                 //get the payload length from the header
                 int payloadLength = header[2];
                 byte[] message = com.readFully(payloadLength,player.getClient());
-                treathEvent(header[1],message,player.getClient());
+                treatEvent(header[1],message,player.getClient());
             }
             catch(Exception e)
             {
@@ -57,7 +63,7 @@ public class BikeUser implements Runnable {
             }
         }
     }
-    private void treathEvent(int event, byte[] payload, SocketChannel client) throws IOException {
+    private void treatEvent(int event, byte[] payload, SocketChannel client) throws IOException {
         if (event != 20 && event != 11 && event !=18) {
             System.out.print("from server event:");
             System.out.println(event);
@@ -226,5 +232,11 @@ public class BikeUser implements Runnable {
 
     public static void main(String[] args) throws UnknownHostException {
         prompt = new BikeUserCredGUI();
+    }
+
+    public LinkedHashMap<Integer, String> getLeaderboard() throws RemoteException {
+        LinkedHashMap<Integer, String> data = server.getLeaderbord();
+        System.out.println("bikeUSer leaderboard: "+data);
+        return data;
     }
 }
