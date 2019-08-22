@@ -21,8 +21,7 @@ public class BikeServer extends UnicastRemoteObject implements IntServer {
     private static ServerSocketChannel serverSocket;
     private static Communication com = new Communication();
     private static LinkedHashMap<Integer, String> leaderboard = new LinkedHashMap<Integer, String>();
-    //This is a reference to the core object, which has methods for all computations.
-    //Has been made public static, so that the GUI can see it and call its methods.
+
 
 
     public static void main(String[] args) {
@@ -56,6 +55,7 @@ public class BikeServer extends UnicastRemoteObject implements IntServer {
             e.printStackTrace();
         }
     }
+    // help from https://examples.javacodegeeks.com/core-java/nio/channels/selector-channels/java-nio-channels-selector-example/
     private  void lauchNIOServer()throws IOException{
         // Get selector
         Selector selector = Selector.open();
@@ -112,9 +112,9 @@ public class BikeServer extends UnicastRemoteObject implements IntServer {
 
                 iter.remove();
 
-            } // end while loop
+            }
 
-        } // end for loop
+        }
     }
 
 
@@ -165,9 +165,7 @@ public class BikeServer extends UnicastRemoteObject implements IntServer {
         }
     }
 
-    /*
-     * JAVADOC is on the interface IntServer.
-     */
+
     private void checkGame(String gameName) throws InterruptedException {
         Game game = games.get(gameName);
         boolean flag = true;

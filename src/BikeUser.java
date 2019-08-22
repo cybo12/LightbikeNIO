@@ -164,10 +164,6 @@ public class BikeUser implements Runnable {
 
 
 
-    /**
-     * @return the pseudo of the chatuser
-     * @throws RemoteException
-     */
     public String getPseudo(){
         return player.getPseudo();
     }

@@ -5,6 +5,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 
 public class Communication {
+    //help from S. Hiard with Squares_NIO
     //util. method from previous task...
     public byte[] readFully(int bytesToRead, SocketChannel client) {
         //implement this method
